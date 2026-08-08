@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Terpadu - Monitoring & Dashboard Hafalan | Ar (Portable)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #2ecc71;
+            --info: #17a2b8;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --bg-body: #f4f6f9;
+            --border-color: #e2e8f0;
+            --text-muted: #7f8c8d;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { background-color: var(--bg-body); margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        header { background: var(--primary); color: white; padding: 20px; border-radius: 10px; margin-bottom: 25px; text-align: center; }
+        header h1 { margin: 0; font-size: 24px; }
+        header p { margin: 5px 0 0 0; opacity: 0.8; font-size: 14px; }
+
+        .main-nav-tabs { display: flex; background: #e9ecef; padding: 5px; border-radius: 8px; margin-bottom: 25px; gap: 5px; }
+        .main-nav-link { flex: 1; padding: 12px; text-align: center; background: transparent; border: none; font-weight: bold; color: var(--text-muted); border-radius: 6px; cursor: pointer; font-size: 15px; transition: all 0.2s; }
+        .main-nav-link.active { background: white; color: var(--accent); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .main-tab-pane { display: none; }
+        .main-tab-pane.active { display: block; }
+
+        .nav-tabs { display: flex; border-bottom: 2px solid var(--border-color); list-style: none; padding: 0; margin: 0 0 20px 0; }
+        .nav-link { padding: 10px 20px; cursor: pointer; background: none; border: none; font-weight: bold; color: var(--text-muted); border-bottom: 3px solid transparent; margin-bottom: -2px; font-size: 14px; }
+        .nav-link.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; border-top: 4px solid var(--accent); }
+        .card.success { border-top-color: var(--success); }
+        .card.warning { border-top-color: var(--warning); }
+        .card h3 { margin: 0; color: var(--text-muted); font-size: 14px; text-transform: uppercase; }
+        .card .value { font-size: 32px; font-weight: bold; margin: 10px 0 0 0; color: var(--primary); }
+
+        .section { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .section h2 { margin-top: 0; font-size: 18px; color: var(--primary); border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
+        
+        .upload-zone { border: 2px dashed var(--accent); background: #eef7fc; padding: 25px; text-align: center; border-radius: 8px; cursor: pointer; margin-bottom: 15px; }
+        .upload-zone:hover { background: #e3f2fd; }
+        .upload-zone input { display: none; }
+        .upload-zone p { margin: 0; font-weight: bold; color: #2980b9; }
+
+        .backup-section { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color); }
+
+        .chart-container { position: relative; height: 220px; width: 100%; }
+        
+        .filter-container { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; align-items: flex-end; border: 1px solid var(--border-color); }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
+        .filter-group label { font-size: 12px; font-weight: bold; color: #4a5568; }
+        .filter-input, .form-control, .form-select { padding: 9px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; width: 100%; outline: none; background: white; }
+        .filter-input:focus, .form-control:focus, .form-select:focus { border-color: var(--accent); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ecf0f1; }
+        th { background-color: #f8f9fa; color: #34495e; font-weight: bold; }
+        tr:hover { background-color: #fbfcfc; }
+        
+        .badge { background: #e8f8f5; color: var(--success); padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; display: inline-block; }
+        .badge-kuning { background: #fff9db; color: #f59f00; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        
+        .progress-container { background: #e0e0e0; border-radius: 10px; height: 12px; width: 100%; margin-top: 5px; overflow: hidden; }
+        .progress-bar { background: var(--success); height: 100%; width: 0%; transition: width 0.5s ease-in-out; }
+        
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; font-size: 14px; color: white; }
+        .btn-action { padding: 5px 10px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; margin-right: 3px; }
+        .btn-edit { background-color: #e67e22; }
+        .btn-delete { background-color: var(--danger); }
+        .btn-clear { background-color: var(--text-muted); }
+        .btn-clear:hover { background-color: #616a6b; }
+        .btn-success { background-color: var(--success); }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-warning { background-color: var(--warning); color: #fff; }
+        .btn-reset-filter { background-color: #e2e8f0; color: #4a5568; padding: 9px 15px; border: 1px solid #cbd5e0; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-reset-filter:hover { background-color: #cbd5e0; }
+
+        .pagination-container { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; flex-wrap: wrap; gap: 10px; }
+        .pagination-buttons { display: flex; gap: 5px; }
+        .btn-page { padding: 6px 12px; border: 1px solid #cbd5e0; background: white; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-page.active { background: var(--accent); color: white; border-color: var(--accent); font-weight: bold; }
+        .btn-page:disabled { background: #edf2f7; color: #a0aec0; cursor: not-allowed; }
+
+        .row { display: flex; flex-wrap: wrap; margin: -10px; }
+        .col-4 { flex: 0 0 33.333%; max-width: 33.333%; padding: 10px; }
+        .col-6 { flex: 0 0 50%; max-width: 50%; padding: 10px; }
+        @media (max-width: 768px) { .col-4, .col-6 { flex: 0 0 100%; max-width: 100%; } }
+
+        .card-stat { border-radius: 8px; color: white; padding: 15px; }
+        .card-stat.bg-primary { background: var(--accent); }
+        .card-stat.bg-success { background: var(--success); }
+        .card-stat.bg-info { background: var(--info); }
+        .card-stat.bg-dark { background: var(--primary); }
+        .card-stat h3, .card-stat h4 { margin: 5px 0 0 0; }
+
+        .grid-juz { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+        .card-juz { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; text-align: center; }
+        
+        .grid-surat { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+        .card-surat { background: white; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; }
+
+        footer { margin-top: 40px; padding: 20px 0; text-align: center; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 13px; }
+        footer a { color: var(--accent); text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>📊 Sistem Terpadu Pengelolaan & Monitoring Hafalan Al-Qur'an</h1>
+        <p>Versi Portable Browser (LocalStorage) - Akurasi Kualitatif & Perhitungan Progres Proporsional 30 Juz</p>
+    </header>
+
+    <!-- SISTEM TAB UTAMA NAVIGASI HALAMAN -->
+    <div class="main-nav-tabs">
+        <button class="main-nav-link active" onclick="switchMainTab('dashboardAdmin', this)">📈 Dashboard & Kelola Data</button>
+        <button class="main-nav-link" onclick="switchMainTab('monitoringHafalan', this)">📊 Monitoring Perkembangan Hafalan</button>
+    </div>
+
+    <!-- ================= TAB 1: DASHBOARD ADMIN ================= -->
+    <div id="dashboardAdmin" class="main-tab-pane active">
+        <!-- FORM UPLOAD & BACKUP -->
+        <div class="section">
+            <h2>📥 Impor & Manajemen Data Lokal</h2>
+            <div class="upload-zone" onclick="document.getElementById('fileCsv').click()">
+                <p>📁 Klik di sini untuk Impor Tambah File CSV Baru</p>
+                <span style="font-size:12px; color:var(--text-muted);">Data otomatis disimpan aman ke penyimpanan lokal (LocalStorage) browser Anda</span>
+                <input type="file" id="fileCsv" accept=".csv" multiple onchange="prosesFileCSV(event)">
+            </div>
+            
+            <div class="backup-section">
+                <button class="btn btn-warning" onclick="eksporBackupJSON()">💾 Unduh Cadangan Data (JSON)</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('fileBackupJson').click()">📂 Pulihkan dari Cadangan</button>
+                <input type="file" id="fileBackupJson" accept=".json" style="display:none" onchange="pulihkanBackupJSON(event)">
+                <button class="btn btn-clear" onclick="resetSemuaData()" style="margin-left: auto;">🗑️ Kosongkan / Reset Semua Data</button>
+            </div>
+        </div>
+
+        <!-- RINGKASAN DATA GLOBAL -->
+        <div class="grid-3">
+            <div class="card">
+                <h3>Total Santri Aktif Setor</h3>
+                <div class="value" id="statSantri">0</div>
+            </div>
+            <div class="card success">
+                <h3>Estimasi Total Juz Terhimpun</h3>
+                <div class="value" id="statAyat">0.0 <span style="font-size: 14px; color: var(--text-muted);">Juz</span></div>
+            </div>
+            <div class="card warning">
+                <h3>Total Log Setoran Dengar</h3>
+                <div class="value" id="statTotalLog">0 <span style="font-size: 14px; color: var(--text-muted);">Setoran</span></div>
+            </div>
+        </div>
+
+        <!-- GRAFIK TREN SETORAN -->
+        <div class="section">
+            <h2>📈 Tren Volume Setoran Harian (Semua Ayat yang Didengar)</h2>		
+            <div class="chart-container">
+                <canvas id="grafikHarian"></canvas>
+            </div>
+        </div>
+
+        <!-- TABEL UTAMA: REKAP PROGRES MURNI PER SANTRI -->
+        <div class="section">
+            <h2>👥 Progres Murni Target Hafalan Per Santri (Bobot Juz Riil)</h2>
+            <div class="filter-container">
+                <div class="filter-group">
+                    <label>👤 Pengampu / Ustadz / Halaqah:</label>
+                    <select id="filterPengampuSantri" class="filter-input" onchange="resetHalamanSantriLaluSegarkan()">
+                        <option value="">-- Semua Pengampu --</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>🔍 Cari Nama Santri / Surat:</label>
+                    <input type="text" id="cariSantri" class="filter-input" placeholder="Masukkan kata kunci..." oninput="resetHalamanSantriLaluSegarkan()">
+                </div>
+                <button class="btn-reset-filter" onclick="resetFilterSantri()">🔄 Reset Filter</button>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nama Santri</th>
+                            <th>Pengampu/Halaqah</th>
+                            <th>Daftar Surat Yang Pernah Disetor</th>
+                            <th>Progres Bersih Akumulasi Juz</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelSantriBody">
+                        <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Belum ada data. Silakan upload file CSV.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination-container">
+                <div style="font-size: 13px; color: var(--text-muted);">
+                    Menampilkan <span id="textTotalSantri">0</span> Santri | Baris per halaman: 
+                    <select id="pageSizeSantri" onchange="pilihPageSizeSantri()" style="padding: 3px; border-radius: 4px;">
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <div class="pagination-buttons" id="paginationNavSantri"></div>
+            </div>
+        </div>
+
+        <!-- TABEL LOG JURNAL HARIAN -->
+        <div class="section" style="border-top: 4px solid var(--danger);">
+            <h2>📜 Histori Kronologis & Analisis Kontribusi Ayat Baru</h2>
+            <div class="filter-container">
+                <div class="filter-group">
+                    <label>📅 Dari Tanggal:</label>
+                    <input type="date" id="filterTglMulai" class="filter-input" onchange="resetHalamanLogLaluSegarkan()">
+                </div>
+                <div class="filter-group">
+                    <label>📅 Sampai Tanggal:</label>
+                    <input type="date" id="filterTglSelesai" class="filter-input" onchange="resetHalamanLogLaluSegarkan()">
+                </div>
+                <div class="filter-group">
+                    <label>👤 Pengampu / Ustadz:</label>
+                    <select id="filterPengampu" class="filter-input" onchange="resetHalamanLogLaluSegarkan()">
+                        <option value="">-- Semua Pengampu --</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>🔍 Cari Kata Kunci:</label>
+                    <input type="text" id="cariLog" class="filter-input" placeholder="Nama santri, surat..." oninput="resetHalamanLogLaluSegarkan()">
+                </div>
+                <button class="btn-reset-filter" onclick="resetFilterLog()">🔄 Reset Filter</button>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Urutan Waktu</th>
+                            <th>Waktu Catat</th>
+                            <th>Ustadz</th>
+                            <th>Nama Santri</th>
+                            <th>Surat & Rincian Ayat</th>
+                            <th>Total Ayat Dibaca</th>
+                            <th>Analisis Kontribusi Murni</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelLogBody">
+                        <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Belum ada data detail.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination-container">
+                <div style="font-size: 13px; color: var(--text-muted);">
+                    Menampilkan <span id="textTotalRow">0</span> log setoran | Baris per halaman: 
+                    <select id="pageSizeLog" onchange="pilihPageSizeLog()" style="padding: 3px; border-radius: 4px;">
+                        <option value="10">10</option>
+                        <option value="25" selected>25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div class="pagination-buttons" id="paginationNavLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= TAB 2: MONITORING PERKEMBANGAN HAFALAN ================= -->
+    <div id="monitoringHafalan" class="main-tab-pane">
+        <h2>📊 Monitoring Perkembangan Hafalan</h2>
+
+        <div class="card">
+            <div class="row" style="align-items: flex-end;">
+                <div class="col-4">
+                    <label class="form-label">📅 Tanggal Mulai (Monitoring):</label>
+                    <input type="date" id="tglMulaiMon" class="form-control" onchange="prosesUlangDataMonitoring()">
+                </div>
+                <div class="col-4">
+                    <label class="form-label">📅 Tanggal Sampai (Monitoring):</label>
+                    <input type="date" id="tglSampaiMon" class="form-control" onchange="prosesUlangDataMonitoring()">
+                </div>
+                <div class="col-4">
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="resetFilterTanggalMon()">🔄 Reset Filter Tanggal</button>
+                </div>
+            </div>
+        </div>
+
+        <ul class="nav-tabs">
+            <li><button class="nav-link active" onclick="switchSubTab('tab-santri', this)">👤 Per Santri</button></li>
+            <li><button class="nav-link" onclick="switchSubTab('tab-halaqah', this)">🕌 Per Halaqah</button></li>
+        </ul>
+
+        <div>
+            <!-- SUB-TAB 1: PER SANTRI -->
+            <div class="tab-pane active" id="tab-santri">
+                <div class="row">
+                    <div class="col-6">
+                        <label class="form-label">🔍 Cari Nama Santri:</label>
+                        <input type="text" id="cariSantriMon" class="form-control" style="margin-bottom: 10px;" placeholder="Ketik nama santri..." oninput="filterDropdownSantriMon()">
+                        
+                        <label class="form-label">Pilih Santri:</label>
+                        <select id="selectSantriMon" class="form-select" onchange="tampilkanMonitoringSantri()">
+                            <option value="">-- Memuat Data Santri... --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="detailSantriContainer" style="display: none; margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 id="labelNamaSantriHeader" style="margin:0;">Laporan Santri</h3>
+                        <button class="btn btn-success" onclick="ekstrakCsvSantri()">📥 Ekstrak CSV Santri Ini</button>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-4">
+                            <div class="card-stat bg-primary">
+                                <small>Total Hafalan Baru (Ziyadah)</small>
+                                <h3 id="statTotalZiyadah">0 Ayat</h3>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card-stat bg-success">
+                                <small>Total Murojaah</small>
+                                <h3 id="statTotalMurojaah">0 Ayat</h3>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card-stat bg-info">
+                                <small>Pengampu Halaqah</small>
+                                <h4 id="statPengampu">-</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top:20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <b>📗 Capaian Progres Ringkas Per Juz (1 - 30)</b>
+                            <small style="color: var(--text-muted);">Total Ayat Terhafal: <b id="totalSemuaAyatHafal" style="color:var(--success)">0</b> Ayat</small>
+                        </div>
+                        <div id="gridProgresJuz" class="grid-juz"></div>
+                    </div>
+
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+                            <b>📖 Progres Capaian Per Surat Utuh (114 Surat)</b>
+                            <input type="text" id="cariSuratUtuh" class="form-control" style="width:200px;" placeholder="🔍 Cari Surat..." oninput="renderProgresSuratUtuh()">
+                        </div>
+                        <div id="gridProgresSuratUtuh" class="grid-surat" style="max-height: 400px; overflow-y: auto;"></div>
+                    </div>
+
+                    <div class="card">
+                        <b>📜 Riwayat Setoran Santri</b>
+                        <div style="overflow-x: auto; margin-top: 10px;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Tanggal</th>
+                                        <th>Surat</th>
+                                        <th>Rincian Ayat</th>
+                                        <th>Total Ayat</th>
+                                        <th>Kategori</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelRiwayatSantri"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-TAB 2: PER HALAQAH -->
+            <div class="tab-pane" id="tab-halaqah">
+                <div class="row">
+                    <div class="col-6">
+                        <label class="form-label">🔍 Cari Nama Pengampu / Halaqah:</label>
+                        <input type="text" id="cariHalaqahMon" class="form-control" style="margin-bottom: 10px;" placeholder="Ketik nama pengampu..." oninput="filterDropdownHalaqahMon()">
+                        
+                        <label class="form-label">Pilih Pengampu / Halaqah:</label>
+                        <select id="selectHalaqahMon" class="form-select" onchange="tampilkanMonitoringHalaqah()">
+                            <option value="">-- Memuat Data Halaqah... --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="detailHalaqahContainer" style="display: none; margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 id="labelNamaHalaqahHeader" style="margin: 0;">Laporan Halaqah</h3>
+                        <button class="btn btn-success" onclick="ekstrakCsvHalaqah()">📥 Ekstrak Rekap Lengkap Halaqah (CSV)</button>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="card-stat bg-dark">
+                                <small>Total Santri Aktif</small>
+                                <h3 id="statHalaqahJumlahSantri">0 Santri</h3>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card-stat bg-success">
+                                <small>Total Hafalan Baru Halaqah</small>
+                                <h3 id="statHalaqahTotalAyat">0 Ayat</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 20px;">
+                        <b>👥 Progres Santri Dalam Halaqah Ini</b>
+                        <div style="overflow-x: auto; margin-top: 10px;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Nama Santri</th>
+                                        <th>Total Ziyadah</th>
+                                        <th>Total Murojaah</th>
+                                        <th>Frekuensi Setoran</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelHalaqahSantri"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER PENGEMBANG -->
+    <footer>
+        <p>Dikembangkan oleh <strong>Ar</strong> | Kontak & Dukungan: <a href="mailto:selebu.ilmu@gmail.com">selebu.ilmu@gmail.com</a></p>
+    </footer>
+</div>
+
+<script>
+    // --- DATABASE & DATA UTAMA (LOCALSTORAGE PORTABLE) ---
+    let semuaDataSetoran = [];
+    let grafikInstance = null;
+    const STORAGE_KEY = 'sistem_hafalan_alquran_data_v1';
+    
+    // Pagination Log
+    let currentPageLog = 1;
+    let pageSizeLog = 25;
+
+    // Pagination Santri
+    let currentPageSantri = 1;
+    let pageSizeSantri = 10;
+
+    const DATABASE_JUZ = {
+        1: { "alfatihah": [1,7], "albaqarah": [1,141] },
+        2: { "albaqarah": [142,252] },
+        3: { "albaqarah": [253,286], "aliimran": [1,92] },
+        4: { "aliimran": [93,200], "annisa": [1,23] },
+        5: { "annisa": [24,147] },
+        6: { "annisa": [148,176], "almaidah": [1,81] },
+        7: { "almaidah": [82,120], "alanam": [1,110] },
+        8: { "alanam": [111,165], "alaraf": [1,87] },
+        9: { "alaraf": [88,206], "alanfal": [1,40] },
+        10: { "alanfal": [41,75], "attaubah": [1,92] },
+        11: { "attaubah": [93,129], "yunus": [1,109], "hud": [1,5] },
+        12: { "hud": [6,123], "yusuf": [1,52] },
+        13: { "yusuf": [53,111], "arrad": [1,43], "ibrahim": [1,52] },
+        14: { "alhijr": [1,99], "annahl": [1,128] },
+        15: { "alisra": [1,111], "alkahfi": [1,74] },
+        16: { "alkahfi": [75,110], "maryam": [1,98], "taha": [1,135] },
+        17: { "alanbiya": [1,112], "alhaj": [1,78] },
+        18: { "almuminun": [1,118], "annur": [1,64], "alfurqan": [1,20] },
+        19: { "alfurqan": [21,77], "assyuara": [1,227], "annaml": [1,55] },
+        20: { "annaml": [56,93], "alqasas": [1,88], "alankabut": [1,45] },
+        21: { "alankabut": [46,69], "arrum": [1,60], "luqman": [1,34], "assajdah": [1,30], "alahzab": [1,30] },
+        22: { "alahzab": [31,73], "saba": [1,54], "fatir": [1,45], "yasin": [1,27] },
+        23: { "yasin": [28,83], "assaffat": [1,182], "sad": [1,88], "azzumar": [1,31] },
+        24: { "azzumar": [32,75], "ghafir": [1,85], "fussilat": [1,46] },
+        25: { "fussilat": [47,54], "assyura": [1,53], "azzukhruf": [1,89], "addukhan": [1,59], "aljasiyah": [1,37] },
+        26: { "alahqaf": [1,35], "muhammad": [1,38], "alfath": [1,29], "alhujurat": [1,18], "qaf": [1,45], "azzariyat": [1,30] },
+        27: { "azzariyat": [31,60], "attur": [1,49], "annajm": [1,62], "alqamar": [1,55], "arrahman": [1,78], "alwaqiah": [1,96], "alhadid": [1,29] },
+        28: { "almujadilah": [1,22], "alhasyr": [1,24], "almumtahanah": [1,13], "assaff": [1,14], "aljumuah": [1,11], "almunafiqun": [1,11], "attaghabun": [1,18], "attalaq": [1,12], "attahrim": [1,12] },
+        29: { "almulk": [1,30], "alqalam": [1,52], "alhaqqah": [1,52], "almaarij": [1,44], "nuh": [1,28], "aljinn": [1,28], "almuzammil": [1,20], "almuddassir": [1,56], "alqiyamah": [1,40], "alinsan": [1,31], "almursalat": [1,50] },
+        30: { "annaba": [1,40], "annaziat": [1,46], "abasa": [1,42], "attakwir": [1,29], "alinfitar": [1,19], "almutaffifin": [1,36], "alinsyiqaq": [1,25], "alburuj": [1,22], "attariq": [1,17], "alala": [1,19], "alghasyiyah": [1,26], "alfajr": [1,30], "albalad": [1,20], "assyams": [1,15], "allail": [1,21], "adduha": [1,11], "alinsyirah": [1,8], "attin": [1,8], "alalq": [1,19], "alqadr": [1,5], "albayyinah": [1,8], "alzalzalah": [1,8], "aladiyat": [1,11], "alqariah": [1,11], "attakasur": [1,8], "alashr": [1,3], "alhumazah": [1,9], "alfil": [1,5], "quraisy": [1,4], "almaun": [1,7], "alkausar": [1,3], "alkafirun": [1,6], "annasr": [1,3], "alahab": [1,5], "alikhlas": [1,4], "alfalaq": [1,5], "annas": [1,6] }
+    };
+
+    const LIST_SURAT_UTUH = [
+        { no: 1, nama: "Al-Fatihah", total: 7 }, { no: 2, nama: "Al-Baqarah", total: 286 }, { no: 3, nama: "Ali 'Imran", total: 200 },
+        { no: 4, nama: "An-Nisa'", total: 176 }, { no: 5, nama: "Al-Ma'idah", total: 120 }, { no: 6, nama: "Al-An'am", total: 165 },
+        { no: 7, nama: "Al-A'raf", total: 206 }, { no: 8, nama: "Al-Anfal", total: 75 }, { no: 9, nama: "At-Tawbah", total: 129 },
+        { no: 10, nama: "Yunus", total: 109 }, { no: 11, nama: "Hud", total: 123 }, { no: 12, nama: "Yusuf", total: 111 },
+        { no: 13, nama: "Ar-Ra'd", total: 43 }, { no: 14, nama: "Ibrahim", total: 52 }, { no: 15, nama: "Al-Hijr", total: 99 },
+        { no: 16, nama: "An-Nahl", total: 128 }, { no: 17, nama: "Al-Isra'", total: 111 }, { no: 18, nama: "Al-Kahf", total: 110 },
+        { no: 19, nama: "Maryam", total: 98 }, { no: 20, nama: "Taha", total: 135 }, { no: 21, nama: "Al-Anbiya'", total: 112 },
+        { no: 22, nama: "Al-Hajj", total: 78 }, { no: 23, nama: "Al-Mu'minun", total: 118 }, { no: 24, nama: "An-Nur", total: 64 },
+        { no: 25, nama: "Al-Furqan", total: 77 }, { no: 26, nama: "Ash-Shu'ara'", total: 227 }, { no: 27, nama: "An-Naml", total: 93 },
+        { no: 28, nama: "Al-Qasas", total: 88 }, { no: 29, nama: "Al-'Ankabut", total: 69 }, { no: 30, nama: "Ar-Rum", total: 60 },
+        { no: 31, nama: "Luqman", total: 34 }, { no: 32, nama: "As-Sajdah", total: 30 }, { no: 33, nama: "Al-Ahzab", total: 73 },
+        { no: 34, nama: "Saba'", total: 54 }, { no: 35, nama: "Fatir", total: 45 }, { no: 36, nama: "Yasin", total: 83 },
+        { no: 37, nama: "As-Saffat", total: 182 }, { no: 38, nama: "Sad", total: 88 }, { no: 39, nama: "Az-Zumar", total: 75 },
+        { no: 40, nama: "Ghafir", total: 85 }, { no: 41, nama: "Fussilat", total: 54 }, { no: 42, nama: "Ash-Shura", total: 53 },
+        { no: 43, nama: "Az-Zukhruf", total: 89 }, { no: 44, nama: "Ad-Dukhan", total: 59 }, { no: 45, nama: "Al-Jathiyah", total: 37 },
+        { no: 46, nama: "Al-Ahqaf", total: 35 }, { no: 47, nama: "Muhammad", total: 38 }, { no: 48, nama: "Al-Fath", total: 29 },
+        { no: 49, nama: "Al-Hujurat", total: 18 }, { no: 50, nama: "Qaf", total: 45 }, { no: 51, nama: "Adh-Dhariyat", total: 60 },
+        { no: 52, nama: "At-Tur", total: 49 }, { no: 53, nama: "An-Najm", total: 62 }, { no: 54, nama: "Al-Qamar", total: 55 },
+        { no: 55, nama: "Ar-Rahman", total: 78 }, { no: 56, nama: "Al-Waqi'ah", total: 96 }, { no: 57, nama: "Al-Hadid", total: 29 },
+        { no: 58, nama: "Al-Mujadila", total: 22 }, { no: 59, nama: "Al-Hashr", total: 24 }, { no: 60, nama: "Al-Mumtahanah", total: 13 },
+        { no: 61, nama: "As-Saff", total: 14 }, { no: 62, nama: "Al-Jumu'ah", total: 11 }, { no: 63, nama: "Al-Munafiqun", total: 11 },
+        { no: 64, nama: "At-Taghabun", total: 18 }, { no: 65, nama: "At-Talaq", total: 12 }, { no: 66, nama: "At-Tahrim", total: 12 },
+        { no: 67, nama: "Al-Mulk", total: 30 }, { no: 68, nama: "Al-Qalam", total: 52 }, { no: 69, nama: "Al-Haqqah", total: 52 },
+        { no: 70, nama: "Al-Ma'arij", total: 44 }, { no: 71, nama: "Nuh", total: 28 }, { no: 72, nama: "Al-Jinn", total: 28 },
+        { no: 73, nama: "Al-Muzzammil", total: 20 }, { no: 74, nama: "Al-Muddaththir", total: 56 }, { no: 75, nama: "Al-Qiyamah", total: 40 },
+        { no: 76, nama: "Al-Insan", total: 31 }, { no: 77, nama: "Al-Mursalat", total: 50 }, { no: 78, nama: "An-Naba'", total: 40 },
+        { no: 79, nama: "An-Nazi'at", total: 46 }, { no: 80, nama: "'Abasa", total: 42 }, { no: 81, nama: "At-Takwir", total: 29 },
+        { no: 82, nama: "Al-Infitar", total: 19 }, { no: 83, nama: "Al-Mutaffifin", total: 36 }, { no: 84, nama: "Al-Inshiqaq", total: 25 },
+        { no: 85, nama: "Al-Buruj", total: 22 }, { no: 86, nama: "At-Tariq", total: 17 }, { no: 87, nama: "Al-A'la", total: 19 },
+        { no: 88, nama: "Al-Ghashiyah", total: 26 }, { no: 89, nama: "Al-Fajr", total: 30 }, { no: 90, nama: "Al-Balad", total: 20 },
+        { no: 91, nama: "Ash-Shams", total: 15 }, { no: 92, nama: "Al-Lail", total: 21 }, { no: 93, nama: "Ad-Duha", total: 11 },
+        { no: 94, nama: "Ash-Sharh", total: 8 }, { no: 95, nama: "At-Tin", total: 8 }, { no: 96, nama: "Al-'Alaq", total: 19 },
+        { no: 97, nama: "Al-Qadr", total: 5 }, { no: 98, nama: "Al-Bayyinah", total: 8 }, { no: 99, nama: "Az-Zalzalah", total: 8 },
+        { no: 100, nama: "Al-'Adiyat", total: 11 }, { no: 101, nama: "Al-Qari'ah", total: 11 }, { no: 102, nama: "At-Takathur", total: 8 },
+        { no: 103, nama: "Al-'Asr", total: 3 }, { no: 104, nama: "Al-Humazah", total: 9 }, { no: 105, nama: "Al-Fil", total: 5 },
+        { no: 106, nama: "Quraish", total: 4 }, { no: 107, nama: "Al-Ma'un", total: 7 }, { no: 108, nama: "Al-Kawthar", total: 3 },
+        { no: 109, nama: "Al-Kafirun", total: 6 }, { no: 110, nama: "An-Nasr", total: 3 }, { no: 111, nama: "Al-Masad", total: 5 },
+        { no: 112, nama: "Al-Ikhlas", total: 4 }, { no: 113, nama: "Al-Falaq", total: 5 }, { no: 114, nama: "An-Nas", total: 6 }
+    ];
+
+    let TOTAL_AYAT_PER_JUZ = {};
+    let masterSantriMon = [];
+    let masterHalaqahMon = [];
+    let dataSantriAktifRes = null;
+    let dataHalaqahAktifRes = null;
+
+    function inisialisasiKapasitasJuz() {
+        for (let j = 1; j <= 30; j++) {
+            let total = 0;
+            for (let s in DATABASE_JUZ[j]) {
+                total += (DATABASE_JUZ[j][s][1] - DATABASE_JUZ[j][s][0] + 1);
+            }
+            TOTAL_AYAT_PER_JUZ[j] = total;
+        }
+    }
+    inisialisasiKapasitasJuz();
+
+    window.onload = function() {
+        muatDataDariDatabase();
+    };
+
+    function switchMainTab(tabId, el) {
+        document.querySelectorAll('.main-tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.main-nav-link').forEach(l => l.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        el.classList.add('active');
+    }
+
+    function switchSubTab(tabId, el) {
+        document.querySelectorAll('#monitoringHafalan .tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('#monitoringHafalan .nav-link').forEach(l => l.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        el.classList.add('active');
+    }
+
+    // --- MANAJEMEN PENYIMPANAN LOCALSTORAGE ---
+    function muatDataDariDatabase() {
+        try {
+            let dataLokal = localStorage.getItem(STORAGE_KEY);
+            semuaDataSetoran = dataLokal ? JSON.parse(dataLokal) : [];
+            semuaDataSetoran.sort((a, b) => parseWaktuIndonesia(a.waktu) - parseWaktuIndonesia(b.waktu));
+            
+            isiDropdownPengampu();
+            inisialisasiDropdownMonitoring();
+            segarkanSemuaTampilan();
+        } catch (e) {
+            console.error("Gagal memuat data lokal:", e);
+            semuaDataSetoran = [];
+        }
+    }
+
+    function simpanKeDatabaseLokal() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(semuaDataSetoran));
+    }
+
+    function isiDropdownPengampu() {
+        let selectLog = document.getElementById('filterPengampu');
+        let selectSantri = document.getElementById('filterPengampuSantri');
+        let valLogSebelumnya = selectLog.value;
+        let valSantriSebelumnya = selectSantri.value;
+        let daftarPengampu = new Set();
+        
+        semuaDataSetoran.forEach(item => {
+            if (item.pengampu && item.pengampu.trim() !== "") {
+                daftarPengampu.add(item.pengampu.trim());
+            }
+        });
+
+        let htmlOptions = '<option value="">-- Semua Pengampu --</option>';
+        Array.from(daftarPengampu).sort().forEach(p => {
+            htmlOptions += `<option value="${p}">${p}</option>`;
+        });
+
+        selectLog.innerHTML = htmlOptions;
+        selectSantri.innerHTML = htmlOptions;
+        selectLog.value = valLogSebelumnya;
+        selectSantri.value = valSantriSebelumnya;
+    }
+
+    function inisialisasiDropdownMonitoring() {
+        if (!semuaDataSetoran || semuaDataSetoran.length === 0) return;
+        masterSantriMon = [...new Set(semuaDataSetoran.map(item => item.santri.trim()))].sort();
+        masterHalaqahMon = [...new Set(semuaDataSetoran.map(item => item.pengampu ? item.pengampu.trim() : 'Tanpa Pengampu'))].sort();
+
+        renderDropdownSantriMon(masterSantriMon);
+        renderDropdownHalaqahMon(masterHalaqahMon);
+    }
+
+    function resetSemuaData() {
+        if (confirm("Apakah Ustadz yakin ingin menghapus seluruh data yang tersimpan di browser ini?")) {
+            localStorage.removeItem(STORAGE_KEY);
+            semuaDataSetoran = [];
+            muatDataDariDatabase();
+            alert("🧹 Semua data berhasil dikosongkan.");
+        }
+    }
+
+    function eksporBackupJSON() {
+        if (semuaDataSetoran.length === 0) {
+            alert("⚠️ Belum ada data untuk dicadangkan.");
+            return;
+        }
+        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(semuaDataSetoran, null, 2));
+        let downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `backup_hafalan_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    function pulihkanBackupJSON(event) {
+        let file = event.target.files[0];
+        if (!file) return;
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                let parsed = JSON.parse(e.target.result);
+                if (Array.isArray(parsed)) {
+                    if (confirm(`Pulihkan ${parsed.length} data dari file cadangan? Data saat ini akan digabungkan atau ditimpa.`)) {
+                        semuaDataSetoran = parsed;
+                        simpanKeDatabaseLokal();
+                        muatDataDariDatabase();
+                        alert("✅ Data berhasil dipulihkan!");
+                    }
+                } else {
+                    alert("❌ Format file cadangan tidak valid.");
+                }
+            } catch (err) {
+                alert("❌ Gagal membaca file JSON.");
+            }
+            event.target.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    function prosesFileCSV(event) {
+        let files = event.target.files;
+        if (files.length === 0) return;
+        let filesRead = 0;
+        let dataBatchBaru = [];
+
+        for (let i = 0; i < files.length; i++) {
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                let barisItem = uraiCSV(e.target.result);
+                let barisUnik = barisItem.filter(itemBaru => {
+                    let sudahAda = semuaDataSetoran.some(itemLama => 
+                        itemLama.santri.trim().toLowerCase() === itemBaru.santri.trim().toLowerCase() &&
+                        itemLama.surat.trim().toLowerCase() === itemBaru.surat.trim().toLowerCase() &&
+                        itemLama.ayat === itemBaru.ayat &&
+                        itemLama.waktu === itemBaru.waktu
+                    );
+                    return !sudahAda;
+                });
+
+                dataBatchBaru.push(...barisUnik);
+                filesRead++;
+
+                if (filesRead === files.length) {
+                    if (dataBatchBaru.length === 0) {
+                        alert("⚠️ Semua data dalam file CSV ini sudah pernah di-impor sebelumnya (Duplikat ditolak)!");
+                        event.target.value = '';
+                        return;
+                    }
+
+                    semuaDataSetoran.push(...dataBatchBaru);
+                    simpanKeDatabaseLokal();
+                    muatDataDariDatabase();
+                    alert(`✅ Berhasil mengimpor ${dataBatchBaru.length} data setoran baru.`);
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(files[i]);
+        }
+    }
+
+    function formatTanggalMySQL(str) {
+        if (!str || str === "-" || str.trim() === "") {
+            let d = new Date();
+            let pad = n => n.toString().padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+        try {
+            let bagian = str.trim().split(" ");
+            let tglStr = bagian[0]; 
+            let jamStr = bagian[1] || "00:00:00"; 
+            jamStr = jamStr.replace(/\./g, ':');
+            let tglBagian = tglStr.includes('/') ? tglStr.split('/') : tglStr.split('-');
+            let tahun, bulan, hari;
+            if (tglBagian[0].length === 4) {
+                tahun = tglBagian[0]; bulan = tglBagian[1]; hari = tglBagian[2];
+            } else {
+                hari = tglBagian[0]; bulan = tglBagian[1]; tahun = tglBagian[2];
+            }
+            return `${tahun}-${bulan.padStart(2, '0')}-${hari.padStart(2, '0')} ${jamStr}`;
+        } catch(e) {
+            let d = new Date();
+            let pad = n => n.toString().padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+    }
+
+    function uraiCSV(teks) {
+        let baris = teks.split(/\r?\n/);
+        let hasil = [];
+        for (let i = 1; i < baris.length; i++) {
+            let line = baris[i].trim();
+            if (!line) continue;
+            let kolom = [];
+            let didalamKutip = false;
+            let field = "";
+            for (let c = 0; c < line.length; c++) {
+                let char = line[c];
+                if (char === '"') {
+                    didalamKutip = !didalamKutip;
+                } else if (char === ',' && !didalamKutip) {
+                    kolom.push(field.trim().replace(/^"|"$/g, ''));
+                    field = "";
+                } else {
+                    field += char;
+                }
+            }
+            kolom.push(field.trim().replace(/^"|"$/g, ''));
+            if (kolom.length >= 5) {
+                let waktuMentah = (kolom[5]) ? kolom[5] : "";
+                let item = {
+                    pengampu: kolom[0] || "",
+                    santri: kolom[1] || "",
+                    surat: kolom[2] || "",
+                    ayat: kolom[3] || "",
+                    totalAyat: parseInt(kolom[4]) || 0,
+                    waktu: formatTanggalMySQL(waktuMentah)
+                };
+                hasil.push(item);
+            }
+        }
+        return hasil;
+    }
+
+    function parseWaktuIndonesia(strWaktu) {
+        if (!strWaktu || strWaktu.includes("0000-00-00")) return 0;
+        try {
+            let formatAman = strWaktu.replace(" ", "T");
+            return new Date(formatAman).getTime();
+        } catch(e) { return 0; }
+    }
+
+    function bersihkanNamaSurat(namaSurat) {
+        return namaSurat.toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function bongkarAyatKeList(teksAyat) {
+        let listAyat = [];
+        if (!teksAyat) return listAyat;
+        let teksBersih = teksAyat.toString().replace(/\s+/g, "");
+        if (teksBersih.includes(";") || teksBersih.includes(",")) {
+            let pemisah = teksBersih.includes(";") ? ";" : ",";
+            teksBersih.split(pemisah).forEach(angka => {
+                let n = parseInt(angka); if (!isNaN(n)) listAyat.push(n);
+            });
+        } else if (teksBersih.includes("-")) {
+            let rentang = teksBersih.split("-");
+            let mulai = parseInt(rentang[0]), selesai = parseInt(rentang[1]);
+            if (!isNaN(mulai) && !isNaN(selesai)) {
+                for (let i = mulai; i <= selesai; i++) listAyat.push(i);
+            }
+        } else {
+            let n = parseInt(teksBersih); if (!isNaN(n)) listAyat.push(n);
+        }
+        return listAyat;
+    }
+
+    function hitungPersenJuzRiil(mapHafalanSantri) {
+        let totalBobotJuz = 0;
+        for (let j = 1; j <= 30; j++) {
+            let ayatHafalDiJuzIni = 0;
+            for (let s in DATABASE_JUZ[j]) {
+                if (mapHafalanSantri[s]) {
+                    let mulai = DATABASE_JUZ[j][s][0];
+                    let selesai = DATABASE_JUZ[j][s][1];
+                    for (let a = mulai; a <= selesai; a++) {
+                        if (mapHafalanSantri[s].has(a)) ayatHafalDiJuzIni++;
+                    }
+                }
+            }
+            totalBobotJuz += (ayatHafalDiJuzIni / TOTAL_AYAT_PER_JUZ[j]);
+        }
+        return totalBobotJuz;
+    }
+
+    function segarkanSemuaTampilan() {
+        hitungStatistik();
+        tampilkanRekapSantri();
+        tampilkanLogDetail();
+        buatGrafikHarian();
+        if (document.getElementById('selectSantriMon').value) tampilkanMonitoringSantri();
+        if (document.getElementById('selectHalaqahMon').value) tampilkanMonitoringHalaqah();
+    }
+
+    function hitungStatistik() {
+        let setSantri = new Set();
+        let databaseHafalanUnik = {};
+
+        semuaDataSetoran.forEach(item => {
+            setSantri.add(item.santri);
+            let idSurat = bersihkanNamaSurat(item.surat);
+            if (!databaseHafalanUnik[item.santri]) databaseHafalanUnik[item.santri] = {};
+            if (!databaseHafalanUnik[item.santri][idSurat]) databaseHafalanUnik[item.santri][idSurat] = new Set();
+            bongkarAyatKeList(item.ayat).forEach(noAyat => databaseHafalanUnik[item.santri][idSurat].add(noAyat));
+        });
+
+        let kumulatifJuzGlobal = 0;
+        for (let nama in databaseHafalanUnik) {
+            kumulatifJuzGlobal += hitungPersenJuzRiil(databaseHafalanUnik[nama]);
+        }
+
+        document.getElementById('statSantri').innerText = setSantri.size;
+        document.getElementById('statAyat').innerText = kumulatifJuzGlobal.toFixed(1);
+        document.getElementById('statTotalLog').innerText = semuaDataSetoran.length;
+    }
+
+    function tampilkanRekapSantri() {
+        let kataKunci = document.getElementById('cariSantri').value.toLowerCase();
+        let pengampuFilter = document.getElementById('filterPengampuSantri').value.toLowerCase();
+        let tbody = document.getElementById('tabelSantriBody');
+        tbody.innerHTML = "";
+
+        if (semuaDataSetoran.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Belum ada data.</td></tr>`;
+            document.getElementById('textTotalSantri').innerText = "0";
+            document.getElementById('paginationNavSantri').innerHTML = "";
+            return;
+        }
+
+        let databaseHafalanUnik = {};
+        let infoPengampu = {};
+        let namaSuratAsli = {};
+
+        semuaDataSetoran.forEach(item => {
+            infoPengampu[item.santri] = item.pengampu;
+            let idSurat = bersihkanNamaSurat(item.surat);
+            namaSuratAsli[idSurat] = item.surat;
+            if (!databaseHafalanUnik[item.santri]) databaseHafalanUnik[item.santri] = {};
+            if (!databaseHafalanUnik[item.santri][idSurat]) databaseHafalanUnik[item.santri][idSurat] = new Set();
+            bongkarAyatKeList(item.ayat).forEach(noAyat => databaseHafalanUnik[item.santri][idSurat].add(noAyat));
+        });
+
+        let santriTerfilter = [];
+        for (let nama in databaseHafalanUnik) {
+            let ustadz = infoPengampu[nama] || "";
+            let daftarTampilSurat = [];
+            for (let idSurat in databaseHafalanUnik[nama]) {
+                daftarTampilSurat.push(namaSuratAsli[idSurat]);
+            }
+            let gabunganSurat = daftarTampilSurat.join(", ");
+
+            let lolosPengampu = true;
+            if (pengampuFilter && ustadz.toLowerCase() !== pengampuFilter) lolosPengampu = false;
+
+            let lolosKataKunci = true;
+            if (kataKunci) {
+                let gabunganTeks = `${nama} ${ustadz} ${gabunganSurat}`.toLowerCase();
+                if (!gabunganTeks.includes(kataKunci)) lolosKataKunci = false;
+            }
+
+            if (lolosPengampu && lolosKataKunci) {
+                santriTerfilter.push({
+                    nama: nama,
+                    pengampu: ustadz,
+                    suratTeks: gabunganSurat,
+                    mapHafalan: databaseHafalanUnik[nama]
+                });
+            }
+        }
+
+        document.getElementById('textTotalSantri').innerText = santriTerfilter.length;
+        if (santriTerfilter.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Tidak ada data santri yang cocok.</td></tr>`;
+            document.getElementById('paginationNavSantri').innerHTML = "";
+            return;
+        }
+
+        let totalPages = Math.ceil(santriTerfilter.length / pageSizeSantri);
+        if (currentPageSantri > totalPages) currentPageSantri = totalPages;
+        if (currentPageSantri < 1) currentPageSantri = 1;
+
+        let startIdx = (currentPageSantri - 1) * pageSizeSantri;
+        let dataTampil = santriTerfilter.slice(startIdx, startIdx + pageSizeSantri);
+
+        dataTampil.forEach(s => {
+            let nilaiJuzRiil = hitungPersenJuzRiil(s.mapHafalan);
+            let persen = ((nilaiJuzRiil / 30) * 100).toFixed(1);
+            if (persen > 100) persen = 100;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${s.nama}</b></td>
+                    <td>${s.pengampu}</td>
+                    <td style="color:#555; max-width: 350px;"><small>${s.suratTeks}</small></td>
+                    <td>
+                        <span class="badge" style="background: #ebf5fb; color: #2980b9;">👑 Setara ${nilaiJuzRiil.toFixed(2)} / 30 Juz</span> <b>(${persen}%)</b>
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: ${persen}%"></div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        renderPaginationControlsSantri(totalPages);
+    }
+
+    function renderPaginationControlsSantri(totalPages) {
+        let container = document.getElementById('paginationNavSantri');
+        container.innerHTML = "";
+        let prevBtn = document.createElement('button');
+        prevBtn.className = 'btn-page';
+        prevBtn.innerText = '‹ Prev';
+        prevBtn.disabled = (currentPageSantri === 1);
+        prevBtn.onclick = () => { currentPageSantri--; tampilkanRekapSantri(); };
+        container.appendChild(prevBtn);
+
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= currentPageSantri - 1 && i <= currentPageSantri + 1)) {
+                let pageBtn = document.createElement('button');
+                pageBtn.className = `btn-page ${i === currentPageSantri ? 'active' : ''}`;
+                pageBtn.innerText = i;
+                pageBtn.onclick = () => { currentPageSantri = i; tampilkanRekapSantri(); };
+                container.appendChild(pageBtn);
+            } else if (i === currentPageSantri - 2 || i === currentPageSantri + 2) {
+                let dots = document.createElement('span');
+                dots.innerText = '...';
+                dots.style.padding = '0 3px';
+                container.appendChild(dots);
+            }
+        }
+        let nextBtn = document.createElement('button');
+        nextBtn.className = 'btn-page';
+        nextBtn.innerText = 'Next ›';
+        nextBtn.disabled = (currentPageSantri === totalPages);
+        nextBtn.onclick = () => { currentPageSantri++; tampilkanRekapSantri(); };
+        container.appendChild(nextBtn);
+    }
+
+    function resetHalamanSantriLaluSegarkan() { currentPageSantri = 1; tampilkanRekapSantri(); }
+    function pilihPageSizeSantri() { pageSizeSantri = parseInt(document.getElementById('pageSizeSantri').value); currentPageSantri = 1; tampilkanRekapSantri(); }
+    function resetFilterSantri() { document.getElementById('filterPengampuSantri').value = ""; document.getElementById('cariSantri').value = ""; currentPageSantri = 1; tampilkanRekapSantri(); }
+
+    function tampilkanLogDetail() {
+        let tbody = document.getElementById('tabelLogBody');
+        tbody.innerHTML = "";
+        if (semuaDataSetoran.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Belum ada data.</td></tr>`;
+            document.getElementById('textTotalRow').innerText = "0";
+            document.getElementById('paginationNavLog').innerHTML = "";
+            return;
+        }
+
+        let tglMulai = document.getElementById('filterTglMulai').value;
+        let tglSelesai = document.getElementById('filterTglSelesai').value;
+        let pengampuFilter = document.getElementById('filterPengampu').value.toLowerCase();
+        let kataKunci = document.getElementById('cariLog').value.toLowerCase();
+
+        let trackerLokal = {};
+        let logDisaring = [];
+
+        semuaDataSetoran.forEach((item, index) => {
+            let idSurat = bersihkanNamaSurat(item.surat);
+            if (!trackerLokal[item.santri]) trackerLokal[item.santri] = {};
+            if (!trackerLokal[item.santri][idSurat]) trackerLokal[item.santri][idSurat] = new Set();
+
+            let daftarAyatInput = bongkarAyatKeList(item.ayat);
+            let jumlahAyatBaruMurni = 0;
+            daftarAyatInput.forEach(noAyat => {
+                if (!trackerLokal[item.santri][idSurat].has(noAyat)) {
+                    jumlahAyatBaruMurni++;
+                    trackerLokal[item.santri][idSurat].add(noAyat);
+                }
+            });
+
+            let analisisTeks = "";
+            if (jumlahAyatBaruMurni === 0) {
+                analisisTeks = `<span class="badge-kuning">🔄 Murojaah Murni (0 Ayat Baru)</span>`;
+            } else if (jumlahAyatBaruMurni === item.totalAyat) {
+                analisisTeks = `<span class="badge">✨ +${jumlahAyatBaruMurni} Ayat Baru</span>`;
+            } else {
+                analisisTeks = `<span class="badge" style="background:#e3f2fd; color:#1565c0;">🆕 +${jumlahAyatBaruMurni} Ayat Baru</span><br><small style="color:var(--text-muted);">(${item.totalAyat - jumlahAyatBaruMurni} Murojaah)</small>`;
+            }
+
+            let tglLog = item.waktu.split(" ")[0]; 
+            let lolosTgl = true;
+            if (tglMulai && tglLog < tglMulai) lolosTgl = false;
+            if (tglSelesai && tglLog > tglSelesai) lolosTgl = false;
+            let lolosPengampu = true;
+            if (pengampuFilter && item.pengampu.toLowerCase() !== pengampuFilter) lolosPengampu = false;
+            let lolosKataKunci = true;
+            if (kataKunci) {
+                let gabunganTeks = `${item.santri} ${item.surat} ${item.pengampu}`.toLowerCase();
+                if (!gabunganTeks.includes(kataKunci)) lolosKataKunci = false;
+            }
+
+            if (lolosTgl && lolosPengampu && lolosKataKunci) {
+                logDisaring.push({ indexUrut: index + 1, data: item, analisisTeks: analisisTeks });
+            }
+        });
+
+        document.getElementById('textTotalRow').innerText = logDisaring.length;
+        if (logDisaring.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Tidak ada data setoran yang cocok dengan filter.</td></tr>`;
+            document.getElementById('paginationNavLog').innerHTML = "";
+            return;
+        }
+
+        let totalPages = Math.ceil(logDisaring.length / pageSizeLog);
+        if (currentPageLog > totalPages) currentPageLog = totalPages;
+        if (currentPageLog < 1) currentPageLog = 1;
+
+        let startIdx = (currentPageLog - 1) * pageSizeLog;
+        let dataTampil = logDisaring.slice(startIdx, startIdx + pageSizeLog);
+
+        dataTampil.forEach(row => {
+            let item = row.data;
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>⏰ #${row.indexUrut}</b></td>
+                    <td><small>${item.waktu}</small></td>
+                    <td>${item.pengampu}</td>
+                    <td><b>${item.santri}</b></td>
+                    <td>${item.surat} <br><small style="color:var(--text-muted);">Rentang: ${item.ayat}</small></td>
+                    <td><b>${item.totalAyat}</b></td>
+                    <td>${row.analisisTeks}</td>
+                    <td>
+                        <button class="btn-action btn-edit" onclick="editDataPusat(${row.indexUrut - 1})">✏️</button>
+                        <button class="btn-action btn-delete" onclick="hapusDataPusat(${row.indexUrut - 1})">❌</button>
+                    </td>
+                </tr>
+            `;
+        });
+        renderPaginationControlsLog(totalPages);
+    }
+
+    function renderPaginationControlsLog(totalPages) {
+        let container = document.getElementById('paginationNavLog');
+        container.innerHTML = "";
+        let prevBtn = document.createElement('button');
+        prevBtn.className = 'btn-page';
+        prevBtn.innerText = '‹ Prev';
+        prevBtn.disabled = (currentPageLog === 1);
+        prevBtn.onclick = () => { currentPageLog--; tampilkanLogDetail(); };
+        container.appendChild(prevBtn);
+
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= currentPageLog - 1 && i <= currentPageLog + 1)) {
+                let pageBtn = document.createElement('button');
+                pageBtn.className = `btn-page ${i === currentPageLog ? 'active' : ''}`;
+                pageBtn.innerText = i;
+                pageBtn.onclick = () => { currentPageLog = i; tampilkanLogDetail(); };
+                container.appendChild(pageBtn);
+            } else if (i === currentPageLog - 2 || i === currentPageLog + 2) {
+                let dots = document.createElement('span');
+                dots.innerText = '...';
+                dots.style.padding = '0 3px';
+                container.appendChild(dots);
+            }
+        }
+        let nextBtn = document.createElement('button');
+        nextBtn.className = 'btn-page';
+        nextBtn.innerText = 'Next ›';
+        nextBtn.disabled = (currentPageLog === totalPages);
+        nextBtn.onclick = () => { currentPageLog++; tampilkanLogDetail(); };
+        container.appendChild(nextBtn);
+    }
+
+    function resetHalamanLogLaluSegarkan() { currentPageLog = 1; tampilkanLogDetail(); }
+    function pilihPageSizeLog() { pageSizeLog = parseInt(document.getElementById('pageSizeLog').value); currentPageLog = 1; tampilkanLogDetail(); }
+    function resetFilterLog() {
+        document.getElementById('filterTglMulai').value = "";
+        document.getElementById('filterTglSelesai').value = "";
+        document.getElementById('filterPengampu').value = "";
+        document.getElementById('cariLog').value = "";
+        currentPageLog = 1;
+        tampilkanLogDetail();
+    }
+
+    function hapusDataPusat(index) {
+        if (confirm("Hapus baris data setoran ini?")) {
+            semuaDataSetoran.splice(index, 1);
+            simpanKeDatabaseLokal();
+            muatDataDariDatabase();
+        }
+    }
+
+    function editDataPusat(index) {
+        let target = semuaDataSetoran[index];
+        let namaBaru = prompt("Ubah Nama Santri:", target.santri); if (namaBaru === null) return;
+        let suratBaru = prompt("Ubah Nama Surat:", target.surat); if (suratBaru === null) return;
+        let ayatBaru = prompt("Ubah Rentang Ayat:", target.ayat); if (ayatBaru === null) return;
+        let totalBaru = prompt("Ubah Total Jumlah Ayat:", target.totalAyat); if (totalBaru === null) return;
+
+        semuaDataSetoran[index] = {
+            ...target,
+            santri: namaBaru.trim(),
+            surat: suratBaru.trim(),
+            ayat: ayatBaru.trim(),
+            totalAyat: parseInt(totalBaru) || 0
+        };
+
+        simpanKeDatabaseLokal();
+        muatDataDariDatabase();
+    }
+
+    function buatGrafikHarian() {
+        let trenHarian = {};
+        semuaDataSetoran.forEach(item => {
+            let tanggal = item.waktu.split(" ")[0] || "TanpaTgl"; 
+            if(tanggal === "0000-00-00") tanggal = "TanpaTgl";
+            trenHarian[tanggal] = (trenHarian[tanggal] || 0) + item.totalAyat;
+        });
+        let labelTanggal = Object.keys(trenHarian);
+        let dataJumlah = labelTanggal.map(tgl => trenHarian[tgl]);
+
+        if (grafikInstance) grafikInstance.destroy();
+        let ctx = document.getElementById('grafikHarian').getContext('2d');
+        grafikInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labelTanggal,
+                datasets: [{
+                    label: 'Volume Total Ayat Didengar',
+                    data: dataJumlah,
+                    borderColor: '#2980b9',
+                    backgroundColor: 'rgba(41, 128, 185, 0.1)',
+                    borderWidth: 2,
+                    fill: true
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    // --- MONITORING HAFALAN LOGIC ---
+    const MAP_JUZ = {
+        1: [{ nama: "Al-Fatihah", total: 7 }, { nama: "Al-Baqarah", total: 141 }],
+        2: [{ nama: "Al-Baqarah", total: 111 }],
+        3: [{ nama: "Al-Baqarah", total: 34 }, { nama: "Ali 'Imran", total: 92 }],
+        4: [{ nama: "Ali 'Imran", total: 108 }, { nama: "An-Nisa'", total: 23 }],
+        5: [{ nama: "An-Nisa'", total: 124 }],
+        6: [{ nama: "An-Nisa'", total: 29 }, { nama: "Al-Ma'idah", total: 81 }],
+        7: [{ nama: "Al-Ma'idah", total: 39 }, { nama: "Al-An'am", total: 110 }],
+        8: [{ nama: "Al-An'am", total: 55 }, { nama: "Al-A'raf", total: 87 }],
+        9: [{ nama: "Al-A'raf", total: 119 }, { nama: "Al-Anfal", total: 40 }],
+        10: [{ nama: "Al-Anfal", total: 35 }, { nama: "At-Tawbah", total: 92 }],
+        11: [{ nama: "At-Tawbah", total: 37 }, { nama: "Yunus", total: 109 }, { nama: "Hud", total: 5 }],
+        12: [{ nama: "Hud", total: 118 }, { nama: "Yusuf", total: 52 }],
+        13: [{ nama: "Yusuf", total: 59 }, { nama: "Ar-Ra'd", total: 43 }, { nama: "Ibrahim", total: 52 }],
+        14: [{ nama: "Al-Hijr", total: 99 }, { nama: "An-Nahl", total: 128 }],
+        15: [{ nama: "Al-Isra'", total: 111 }, { nama: "Al-Kahf", total: 74 }],
+        16: [{ nama: "Al-Kahf", total: 36 }, { nama: "Maryam", total: 98 }, { nama: "Taha", total: 135 }],
+        17: [{ nama: "Al-Anbiya'", total: 112 }, { nama: "Al-Hajj", total: 78 }],
+        18: [{ nama: "Al-Mu'minun", total: 118 }, { nama: "An-Nur", total: 64 }, { nama: "Al-Furqan", total: 20 }],
+        19: [{ nama: "Al-Furqan", total: 57 }, { nama: "Ash-Shu'ara'", total: 227 }, { nama: "An-Naml", total: 55 }],
+        20: [{ nama: "An-Naml", total: 38 }, { nama: "Al-Qasas", total: 88 }, { nama: "Al-'Ankabut", total: 45 }],
+        21: [{ nama: "Al-'Ankabut", total: 24 }, { nama: "Ar-Rum", total: 60 }, { nama: "Luqman", total: 34 }, { nama: "As-Sajdah", total: 30 }, { nama: "Al-Ahzab", total: 30 }],
+        22: [{ nama: "Al-Ahzab", total: 43 }, { nama: "Saba'", total: 54 }, { nama: "Fatir", total: 45 }, { nama: "Yasin", total: 27 }],
+        23: [{ nama: "Yasin", total: 56 }, { nama: "As-Saffat", total: 182 }, { nama: "Sad", total: 88 }, { nama: "Az-Zumar", total: 31 }],
+        24: [{ nama: "Az-Zumar", total: 44 }, { nama: "Ghafir", total: 85 }, { nama: "Fussilat", total: 46 }],
+        25: [{ nama: "Fussilat", total: 8 }, { nama: "Ash-Shura", total: 53 }, { nama: "Az-Zukhruf", total: 89 }, { nama: "Ad-Dukhan", total: 59 }, { nama: "Al-Jathiyah", total: 37 }],
+        26: [{ nama: "Al-Ahqaf", total: 35 }, { nama: "Muhammad", total: 38 }, { nama: "Al-Fath", total: 29 }, { nama: "Al-Hujurat", total: 18 }, { nama: "Qaf", total: 45 }, { nama: "Adh-Dhariyat", total: 30 }],
+        27: [{ nama: "Adh-Dhariyat", total: 30 }, { nama: "At-Tur", total: 49 }, { nama: "An-Najm", total: 62 }, { nama: "Al-Qamar", total: 55 }, { nama: "Ar-Rahman", total: 78 }, { nama: "Al-Waqi'ah", total: 96 }, { nama: "Al-Hadid", total: 29 }],
+        28: [{ nama: "Al-Mujadila", total: 22 }, { nama: "Al-Hashr", total: 24 }, { nama: "Al-Mumtahanah", total: 13 }, { nama: "As-Saff", total: 14 }, { nama: "Al-Jumu'ah", total: 11 }, { nama: "Al-Munafiqun", total: 11 }, { nama: "At-Taghabun", total: 18 }, { nama: "At-Talaq", total: 12 }, { nama: "At-Tahrim", total: 12 }],
+        29: [{ nama: "Al-Mulk", total: 30 }, { nama: "Al-Qalam", total: 52 }, { nama: "Al-Haqqah", total: 52 }, { nama: "Al-Ma'arij", total: 44 }, { nama: "Nuh", total: 28 }, { nama: "Al-Jinn", total: 28 }, { nama: "Al-Muzzammil", total: 20 }, { nama: "Al-Muddaththir", total: 56 }, { nama: "Al-Qiyamah", total: 40 }, { nama: "Al-Insan", total: 31 }, { nama: "Al-Mursalat", total: 50 }],
+        30: [{ nama: "An-Naba'", total: 40 }, { nama: "An-Nazi'at", total: 46 }, { nama: "'Abasa", total: 42 }, { nama: "At-Takwir", total: 29 }, { nama: "Al-Infitar", total: 19 }, { nama: "Al-Mutaffifin", total: 36 }, { nama: "Al-Inshiqaq", total: 25 }, { nama: "Al-Buruj", total: 22 }, { nama: "At-Tariq", total: 17 }, { nama: "Al-A'la", total: 19 }, { nama: "Al-Ghashiyah", total: 26 }, { nama: "Al-Fajr", total: 30 }, { nama: "Al-Balad", total: 20 }, { nama: "Ash-Shams", total: 15 }, { nama: "Al-Lail", total: 21 }, { nama: "Ad-Duha", total: 11 }, { nama: "Ash-Sharh", total: 8 }, { nama: "At-Tin", total: 8 }, { nama: "Al-'Alaq", total: 19 }, { nama: "Al-Qadr", total: 5 }, { nama: "Al-Bayyinah", total: 8 }, { nama: "Az-Zalzalah", total: 8 }, { nama: "Al-'Adiyat", total: 11 }, { nama: "Al-Qari'ah", total: 11 }, { nama: "At-Takathur", total: 8 }, { nama: "Al-'Asr", total: 3 }, { nama: "Al-Humazah", total: 9 }, { nama: "Al-Fil", total: 5 }, { nama: "Quraish", total: 4 }, { nama: "Al-Ma'un", total: 7 }, { nama: "Al-Kawthar", total: 3 }, { nama: "Al-Kafirun", total: 6 }, { nama: "An-Nasr", total: 3 }, { nama: "Al-Masad", total: 5 }, { nama: "Al-Ikhlas", total: 4 }, { nama: "Al-Falaq", total: 5 }, { nama: "An-Nas", total: 6 }]
+    };
+
+    function filterBerdasarkanTanggalMon(dataList) {
+        let tglMulai = document.getElementById('tglMulaiMon').value;
+        let tglSampai = document.getElementById('tglSampaiMon').value;
+        if (!tglMulai && !tglSampai) return dataList;
+
+        return dataList.filter(item => {
+            let tglItem = item.waktu ? new Date(item.waktu.split(' ')[0].replace(/\//g, '-')) : null;
+            if (!tglItem || isNaN(tglItem)) return true;
+            if (tglMulai && tglItem < new Date(tglMulai)) return false;
+            if (tglSampai && tglItem > new Date(tglSampai)) return false;
+            return true;
+        });
+    }
+
+    function resetFilterTanggalMon() {
+        document.getElementById('tglMulaiMon').value = '';
+        document.getElementById('tglSampaiMon').value = '';
+        prosesUlangDataMonitoring();
+    }
+
+    function prosesUlangDataMonitoring() {
+        if (document.getElementById('selectSantriMon').value) tampilkanMonitoringSantri();
+        if (document.getElementById('selectHalaqahMon').value) tampilkanMonitoringHalaqah();
+    }
+
+    function hitungProgresSantriMon(namaSantri) {
+        let dataSantri = semuaDataSetoran.filter(item => item.santri.trim() === namaSantri);
+        dataSantri.sort((a, b) => new Date(a.waktu) - new Date(b.waktu));
+
+        let ayatPernahDisetor = {}; 
+        let riwayatHasil = [];
+        let totalZiyadahGlobal = 0;
+        let totalMurojaahGlobal = 0;
+
+        dataSantri.forEach(item => {
+            let surat = item.surat.trim();
+            let listAyat = bongkarAyatKeList(item.ayat);
+
+            if (!ayatPernahDisetor[surat]) ayatPernahDisetor[surat] = new Set();
+            let setSurat = ayatPernahDisetor[surat];
+
+            let zi = 0, mu = 0;
+            listAyat.forEach(no => {
+                if (!setSurat.has(no)) {
+                    zi++;
+                    setSurat.add(no);
+                } else {
+                    mu++;
+                }
+            });
+
+            riwayatHasil.push({
+                ...item,
+                ziyadah: zi,
+                murojaah: mu,
+                isFullZiyadah: mu === 0,
+                isFullMurojaah: zi === 0
+            });
+        });
+
+        let riwayatTersaring = filterBerdasarkanTanggalMon(riwayatHasil);
+        riwayatTersaring.forEach(i => {
+            totalZiyadahGlobal += i.ziyadah;
+            totalMurojaahGlobal += i.murojaah;
+        });
+        riwayatTersaring.sort((a, b) => new Date(b.waktu) - new Date(a.waktu));
+
+        return {
+            santri: namaSantri,
+            totalZiyadah: totalZiyadahGlobal,
+            totalMurojaah: totalMurojaahGlobal,
+            pengampu: dataSantri[0]?.pengampu || '-',
+            ayatPernahDisetor: ayatPernahDisetor,
+            riwayat: riwayatTersaring
+        };
+    }
+
+    function filterDropdownSantriMon() {
+        let kw = document.getElementById('cariSantriMon').value.toLowerCase();
+        renderDropdownSantriMon(masterSantriMon.filter(n => n.toLowerCase().includes(kw)));
+    }
+
+    function renderDropdownSantriMon(list) {
+        let s = document.getElementById('selectSantriMon');
+        s.innerHTML = '<option value="">-- Pilih Santri --</option>';
+        list.forEach(v => s.innerHTML += `<option value="${v}">${v}</option>`);
+    }
+
+    function filterDropdownHalaqahMon() {
+        let kw = document.getElementById('cariHalaqahMon').value.toLowerCase();
+        renderDropdownHalaqahMon(masterHalaqahMon.filter(n => n.toLowerCase().includes(kw)));
+    }
+
+    function renderDropdownHalaqahMon(list) {
+        let s = document.getElementById('selectHalaqahMon');
+        s.innerHTML = '<option value="">-- Pilih Halaqah --</option>';
+        list.forEach(v => s.innerHTML += `<option value="${v}">${v}</option>`);
+    }
+
+    function tampilkanMonitoringSantri() {
+        let namaSantri = document.getElementById('selectSantriMon').value;
+        let container = document.getElementById('detailSantriContainer');
+        if (!namaSantri) return container.style.display = 'none';
+
+        let res = hitungProgresSantriMon(namaSantri);
+        dataSantriAktifRes = res; 
+        container.style.display = 'block';
+
+        document.getElementById('labelNamaSantriHeader').innerText = '👤 Laporan: ' + res.santri;
+        document.getElementById('statTotalZiyadah').innerText = res.totalZiyadah + ' Ayat';
+        document.getElementById('statTotalMurojaah').innerText = res.totalMurojaah + ' Ayat';
+        document.getElementById('statPengampu').innerText = res.pengampu;
+
+        let htmlJuz = '';
+        let totalSemuaAyatHafal = 0;
+
+        for (let noJuz = 1; noJuz <= 30; noJuz++) {
+            let suratList = MAP_JUZ[noJuz] || [];
+            let totalAyatJuz = suratList.reduce((acc, curr) => acc + curr.total, 0);
+            let ayatTercapai = 0;
+
+            suratList.forEach(s => {
+                let setHafal = res.ayatPernahDisetor[s.nama];
+                if (setHafal) ayatTercapai += setHafal.size;
+            });
+
+            totalSemuaAyatHafal += ayatTercapai;
+            let persentase = totalAyatJuz > 0 ? Math.round((ayatTercapai / totalAyatJuz) * 100) : 0;
+
+            htmlJuz += `
+                <div class="card-juz">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold;">
+                        <span>Juz ${noJuz}</span>
+                        <span>${persentase}%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar ${persentase === 100 ? 'bg-success' : ''}" style="width: ${persentase}%"></div>
+                    </div>
+                </div>`;
+        }
+
+        document.getElementById('gridProgresJuz').innerHTML = htmlJuz;
+        document.getElementById('totalSemuaAyatHafal').innerText = totalSemuaAyatHafal;
+        renderProgresSuratUtuh();
+
+        let tbodyHtml = '';
+        res.riwayat.forEach(item => {
+            let badge = item.isFullZiyadah 
+                ? `<span class="badge" style="background:var(--success); color:white;">Ziyadah (+${item.ziyadah})</span>`
+                : item.isFullMurojaah 
+                ? `<span class="badge" style="background:#6c757d; color:white;">Murojaah (${item.murojaah})</span>`
+                : `<span class="badge" style="background:var(--warning); color:#000;">+${item.ziyadah} Baru | ${item.murojaah} Murojaah</span>`;
+
+            tbodyHtml += `
+                <tr>
+                    <td>${item.waktu}</td>
+                    <td><b>${item.surat}</b></td>
+                    <td><small>${item.ayat}</small></td>
+                    <td>${item.totalAyat}</td>
+                    <td>${badge}</td>
+                </tr>`;
+        });
+        document.getElementById('tabelRiwayatSantri').innerHTML = tbodyHtml;
+    }
+
+    function renderProgresSuratUtuh() {
+        if (!dataSantriAktifRes) return;
+        let res = dataSantriAktifRes;
+        let kw = (document.getElementById('cariSuratUtuh').value || '').toLowerCase();
+        let filteredList = LIST_SURAT_UTUH.filter(s => s.nama.toLowerCase().includes(kw) || s.no.toString() === kw);
+        let htmlSurat = '';
+
+        filteredList.forEach(s => {
+            let setHafal = res.ayatPernahDisetor[s.nama];
+            let ayatTercapai = setHafal ? setHafal.size : 0;
+            let pct = Math.round((ayatTercapai / s.total) * 100);
+
+            htmlSurat += `
+                <div class="card-surat">
+                    <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                        <span style="font-size:13px;"><small style="color:#888;">#${s.no}</small> ${s.nama}</span>
+                        <span style="font-size:12px;">${pct}%</span>
+                    </div>
+                    <small style="color:#777; font-size:11px;">${ayatTercapai} / ${s.total} Ayat</small>
+                    <div class="progress-container">
+                        <div class="progress-bar ${pct === 100 ? 'bg-success' : ''}" style="width: ${pct}%"></div>
+                    </div>
+                </div>`;
+        });
+
+        if (filteredList.length === 0) {
+            htmlSurat = `<div style="grid-column: 1/-1; text-align:center; color:#888; padding:15px;">Surat tidak ditemukan</div>`;
+        }
+        document.getElementById('gridProgresSuratUtuh').innerHTML = htmlSurat;
+    }
+
+    function ekstrakCsvSantri() {
+        if (!dataSantriAktifRes) return;
+        let res = dataSantriAktifRes;
+        let csvRows = [];
+        csvRows.push(['-- LAPORAN PROGRES HAFALAN SANTRI --']);
+        csvRows.push(['Nama Santri', res.santri]);
+        csvRows.push(['Pengampu', res.pengampu]);
+        csvRows.push(['Total Ziyadah (Ayat Baru)', res.totalZiyadah]);
+        csvRows.push(['Total Murojaah (Ayat)', res.totalMurojaah]);
+        csvRows.push([]);
+        csvRows.push(['-- PROGRES PER JUZ --']);
+        csvRows.push(['Juz', 'Ayat Terhafal', 'Total Ayat Juz', 'Persentase (%)']);
+        
+        for (let noJuz = 1; noJuz <= 30; noJuz++) {
+            let suratList = MAP_JUZ[noJuz] || [];
+            let totalAyatJuz = suratList.reduce((acc, curr) => acc + curr.total, 0);
+            let ayatTercapai = 0;
+            suratList.forEach(s => {
+                let setHafal = res.ayatPernahDisetor[s.nama];
+                if (setHafal) ayatTercapai += setHafal.size;
+            });
+            let pct = totalAyatJuz > 0 ? Math.round((ayatTercapai / totalAyatJuz) * 100) : 0;
+            csvRows.push([`Juz ${noJuz}`, ayatTercapai, totalAyatJuz, `${pct}%`]);
+        }
+        csvRows.push([]);
+        csvRows.push(['-- RINCIAN PROGRES PER SURAT UTUH (114 SURAT) --']);
+        csvRows.push(['No Surat', 'Nama Surat', 'Ayat Terhafal', 'Total Ayat Surat', 'Persentase (%)']);
+
+        LIST_SURAT_UTUH.forEach(s => {
+            let setHafal = res.ayatPernahDisetor[s.nama];
+            let ayatTercapai = setHafal ? setHafal.size : 0;
+            let pct = Math.round((ayatTercapai / s.total) * 100);
+            csvRows.push([s.no, `"${s.nama}"`, ayatTercapai, s.total, `${pct}%`]);
+        });
+        csvRows.push([]);
+        csvRows.push(['-- RIWAYAT SETORAN SANTRI --']);
+        csvRows.push(['Tanggal', 'Surat', 'Rincian Ayat', 'Total Ayat', 'Ziyadah (Ayat Baru)', 'Murojaah (Ayat)']);
+
+        res.riwayat.forEach(item => {
+            csvRows.push([`"${item.waktu}"`, `"${item.surat}"`, `"${item.ayat}"`, item.totalAyat, item.ziyadah, item.murojaah]);
+        });
+        unduhFileCsv(csvRows, `Laporan_Hafalan_${res.santri.replace(/\s+/g, '_')}.csv`);
+    }
+
+    function tampilkanMonitoringHalaqah() {
+        let namaPengampu = document.getElementById('selectHalaqahMon').value;
+        let container = document.getElementById('detailHalaqahContainer');
+        if (!namaPengampu) return container.style.display = 'none';
+
+        let santriHalaqah = [...new Set(semuaDataSetoran
+            .filter(item => (item.pengampu ? item.pengampu.trim() : 'Tanpa Pengampu') === namaPengampu)
+            .map(item => item.santri.trim())
+        )];
+
+        container.style.display = 'block';
+        let totalZiyadahHalaqah = 0;
+        let listSantriHalaqah = [];
+
+        santriHalaqah.forEach(santri => {
+            let res = hitungProgresSantriMon(santri);
+            totalZiyadahHalaqah += res.totalZiyadah;
+            listSantriHalaqah.push(res);
+        });
+
+        dataHalaqahAktifRes = {
+            pengampu: namaPengampu,
+            jumlahSantri: santriHalaqah.length,
+            totalZiyadah: totalZiyadahHalaqah,
+            santriList: listSantriHalaqah
+        };
+
+        document.getElementById('labelNamaHalaqahHeader').innerText = '🕌 Laporan Halaqah: ' + namaPengampu;
+        document.getElementById('statHalaqahJumlahSantri').innerText = santriHalaqah.length + ' Santri';
+        document.getElementById('statHalaqahTotalAyat').innerText = totalZiyadahHalaqah + ' Ayat Baru';
+        listSantriHalaqah.sort((a, b) => b.totalZiyadah - a.totalZiyadah);
+
+        let tbodyHtml = '';
+        let no = 1;
+        listSantriHalaqah.forEach(item => {
+            tbodyHtml += `
+                <tr>
+                    <td>${no++}</td>
+                    <td><b>${item.santri}</b></td>
+                    <td><span style="color:var(--success); font-weight:bold;">+${item.totalZiyadah} Ayat</span></td>
+                    <td><span style="color:var(--text-muted);">${item.totalMurojaah} Ayat</span></td>
+                    <td><span class="badge" style="background:var(--info); color:white;">${item.riwayat.length}x Setor</span></td>
+                </tr>`;
+        });
+        document.getElementById('tabelHalaqahSantri').innerHTML = tbodyHtml;
+    }
+
+    function ekstrakCsvHalaqah() {
+        if (!dataHalaqahAktifRes) return;
+        let halaqah = dataHalaqahAktifRes;
+        let csvRows = [];
+        csvRows.push(['-- REKAP LAPORAN HALAQAH --']);
+        csvRows.push(['Nama Pengampu / Halaqah', halaqah.pengampu]);
+        csvRows.push(['Jumlah Santri Aktif', halaqah.jumlahSantri]);
+        csvRows.push(['Total Ziyadah Halaqah', halaqah.totalZiyadah]);
+        csvRows.push([]);
+        csvRows.push(['-- MATRIKS CAPAIAN PROGRES SANTRI HALAQAH --']);
+        
+        let headerMatriks = ['No', 'Nama Santri', 'Total Ziyadah (Ayat)', 'Total Murojaah (Ayat)', 'Frekuensi Setor'];
+        for (let j = 1; j <= 30; j++) headerMatriks.push(`Juz ${j} (%)`);
+        LIST_SURAT_UTUH.forEach(s => headerMatriks.push(`${s.nama} (%)`));
+        csvRows.push(headerMatriks);
+
+        halaqah.santriList.forEach((sRes, idx) => {
+            let row = [idx + 1, `"${sRes.santri}"`, sRes.totalZiyadah, sRes.totalMurojaah, sRes.riwayat.length];
+            for (let noJuz = 1; noJuz <= 30; noJuz++) {
+                let suratList = MAP_JUZ[noJuz] || [];
+                let totalAyatJuz = suratList.reduce((acc, curr) => acc + curr.total, 0);
+                let ayatTercapai = 0;
+                suratList.forEach(s => {
+                    let setHafal = sRes.ayatPernahDisetor[s.nama];
+                    if (setHafal) ayatTercapai += setHafal.size;
+                });
+                let pct = totalAyatJuz > 0 ? Math.round((ayatTercapai / totalAyatJuz) * 100) : 0;
+                row.push(`${pct}%`);
+            }
+            LIST_SURAT_UTUH.forEach(s => {
+                let setHafal = sRes.ayatPernahDisetor[s.nama];
+                let ayatTercapai = setHafal ? setHafal.size : 0;
+                let pct = Math.round((ayatTercapai / s.total) * 100);
+                row.push(`${pct}%`);
+            });
+            csvRows.push(row);
+        });
+
+        csvRows.push([]);
+        csvRows.push(['-- RIWAYAT DETAIL LOG SETORAN HALAQAH --']);
+        csvRows.push(['Nama Santri', 'Tanggal Setor', 'Surat', 'Rincian Ayat', 'Total Ayat', 'Ziyadah', 'Murojaah']);
+
+        halaqah.santriList.forEach(sRes => {
+            sRes.riwayat.forEach(r => {
+                csvRows.push([`"${sRes.santri}"`, `"${r.waktu}"`, `"${r.surat}"`, `"${r.ayat}"`, r.totalAyat, r.ziyadah, r.murojaah]);
+            });
+        });
+        unduhFileCsv(csvRows, `Rekap_Halaqah_${halaqah.pengampu.replace(/\s+/g, '_')}.csv`);
+    }
+
+    function unduhFileCsv(rowsArray, namaFile) {
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + rowsArray.map(e => e.join(",")).join("\n");
+        let encodedUri = encodeURI(csvContent);
+        let link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", namaFile);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+</body>
+</html>
